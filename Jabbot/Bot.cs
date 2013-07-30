@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using JabbR.Client;
 using Jabbot.Core;
 using System.ComponentModel.Composition.Primitives;
 using System.ComponentModel.Composition.Hosting;
-using JabbR.Client.Models;
 using Jabbot.Sprockets.Core;
 using System.IO;
 using System.Web.Hosting;
@@ -15,10 +12,14 @@ using System.Threading.Tasks;
 using Jabbot.Models;
 using System.Reflection;
 using System.Web.Management;
-using SignalR.Client.Transports;
 
 namespace Jabbot
 {
+    using JabbR.Client;
+    using JabbR.Client.Models;
+
+    using Microsoft.AspNet.SignalR.Client.Transports;
+
     public class Bot : IBot
     {
 
@@ -32,6 +33,27 @@ namespace Jabbot
         private readonly List<IUnhandledMessageSprocket> _unhandledMessageSprockets = new List<IUnhandledMessageSprocket>();
         private readonly HashSet<string> _rooms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private bool _debugMode = false;
+
+        public string Name { get; private set; }
+
+        public System.Net.ICredentials Credentials
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public event Action Disconnected
+        {
+            add
+            {
+                _client.Disconnected += value;
+            }
+            remove
+            {
+                _client.Disconnected -= value;
+            }
+        }
+
+        public event Action<Message, string> MessageReceived;
 
         internal List<ISprocket> Sprockets
         {
@@ -64,45 +86,17 @@ namespace Jabbot
         {
             if (!_globalEventsWired)
             {
-                TaskScheduler.UnobservedTaskException += (sender, e) =>
-                {
-                    WriteDebugInfo(e.Exception.GetBaseException().ToString());
-                };
+                TaskScheduler.UnobservedTaskException += (sender, e) => this.WriteDebugInfo(e.Exception.GetBaseException().ToString());
             }
             _globalEventsWired = true;
         }
 
         private void InitializeClient()
         {
-            _client = new JabbRClient(_url, new LongPollingTransport());
-
-            _client.MessageReceived += (message, room) =>
-            {
-                ProcessMessage(message, room);
-            };
+            _client = new JabbRClient(_url);
+            _client.MessageReceived += this.ProcessMessage;
         }
-
-        public string Name { get; private set; }
-
-        public System.Net.ICredentials Credentials
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        public event Action Disconnected
-        {
-            add
-            {
-                _client.Disconnected += value;
-            }
-            remove
-            {
-                _client.Disconnected -= value;
-            }
-        }
-
-        public event Action<Message, string> MessageReceived;
-
+    
         public void StartUp()
         {
             _client.Connect(Name, _password).ContinueWith(task =>
@@ -151,7 +145,7 @@ namespace Jabbot
             _client.Send(message, room);
         }
 
-        private void ProcessMessage(JabbR.Client.Models.Message message, string room)
+        private void ProcessMessage(Message message, string room)
         {
             // Ignore replies from self
             if (message.User.Name.Equals(Name, StringComparison.OrdinalIgnoreCase))
@@ -383,7 +377,7 @@ namespace Jabbot
             new LogEvent(message).Raise();
             if (_debugMode)
             {
-                this.Send(message, "twitterbot-admin");
+                this.Send(message, "BotDebug");
             }
         }
 

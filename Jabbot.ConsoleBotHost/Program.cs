@@ -15,8 +15,10 @@ namespace Jabbot.ConsoleBotHost
         {
             Console.WriteLine("Jabbot Bot Runner Starting...");
 
-            Bot bot = new Bot("frankenbot", "123456", "http://jabbr-bots.apphb.com");
+            var bot = new Bot("http://jabbr.micheltol.nl/", "testbot", "testbot");
             bot.StartUp();
+            JoinRooms(bot);
+
             Console.ReadLine();
             return;
             while (!_appShouldExit)

@@ -10,6 +10,11 @@ namespace Jabbot.Core
 {
     public interface IBot
     {
+        string Name { get; }
+        ICredentials Credentials { get; }
+        event Action Disconnected;
+        event Action<Message, string> MessageReceived;
+
         void StartUp();
         void ShutDown();
         void JoinRoom(string room);
@@ -17,9 +22,8 @@ namespace Jabbot.Core
         void PrivateReply(string toName, string message);
         void Send(string message, string room);
         void WriteDebugInfo(string message);
-        ICredentials Credentials { get; }
-        event Action Disconnected;
-        event Action<Message,string> MessageReceived;
-        string Name { get; }
+        
+
+        
     }
 }
