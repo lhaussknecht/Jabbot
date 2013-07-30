@@ -11,7 +11,7 @@ namespace Jabbot.Sprockets
     {
         public bool Handle(Models.ChatMessage message, IBot bot)
         {
-            if (message.Content.Equals("listsprockets", StringComparison.OrdinalIgnoreCase))
+            if (message.Content.Equals("listsprockets", StringComparison.OrdinalIgnoreCase) )
             {
                 IList<ISprocket> sprockets = (bot as Bot).Sprockets;
                 StringBuilder ret = new StringBuilder();
