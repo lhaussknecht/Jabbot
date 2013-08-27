@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Jabbot.Models;
 using Jabbot.Core;
+using System.Threading.Tasks;
 
 namespace Jabbot.CommandSprockets
 {
@@ -10,14 +11,14 @@ namespace Jabbot.CommandSprockets
     {
         public abstract IEnumerable<string> SupportedInitiators { get; }
         public abstract IEnumerable<string> SupportedCommands { get; }
-        public abstract bool ExecuteCommand();
+        public abstract Task<bool> ExecuteCommand();
+        public abstract string Help { get; }
         public string Intitiator { get; protected set; }
         public string Command { get; protected set; }
         public string[] Arguments { get; protected set; }
         public ChatMessage Message { get; protected set; }
         public IBot Bot { get; protected set; }
         public bool HasArguments { get { return Arguments.Length > 0; } }
-
 
         public virtual bool MayHandle(string initiator, string command)
         {
@@ -39,7 +40,7 @@ namespace Jabbot.CommandSprockets
                 if (MayHandle(Intitiator, Command))
                 {
                     Arguments = args.Skip(2).ToArray();
-                    return ExecuteCommand();
+                    return ExecuteCommand().Result;
                 }
             }
             catch (InvalidOperationException e)

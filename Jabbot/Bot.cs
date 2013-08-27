@@ -22,7 +22,6 @@ namespace Jabbot
 
     public class Bot : IBot
     {
-
         private const string ExtensionsFolder = "Sprockets";
 
         private readonly string _password = string.Empty;
@@ -34,11 +33,18 @@ namespace Jabbot
         private readonly HashSet<string> _rooms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private bool _debugMode = false;
 
-        public string Name { get; private set; }
+        public string Name
+        {
+            get;
+            private set;
+        }
 
         public System.Net.ICredentials Credentials
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public event Action Disconnected
@@ -72,7 +78,7 @@ namespace Jabbot
         public Bot(string url, string name, string password)
         {
             InitializeGlobalEvents();
-           
+
             Name = name;
             _url = url;
             _password = password;
@@ -84,7 +90,7 @@ namespace Jabbot
 
         private void InitializeGlobalEvents()
         {
-            if (!_globalEventsWired)
+            if(!_globalEventsWired)
             {
                 TaskScheduler.UnobservedTaskException += (sender, e) => this.WriteDebugInfo(e.Exception.GetBaseException().ToString());
             }
@@ -96,12 +102,12 @@ namespace Jabbot
             _client = new JabbRClient(_url);
             _client.MessageReceived += this.ProcessMessage;
         }
-    
+
         public void StartUp()
         {
             _client.Connect(Name, _password).ContinueWith(task =>
             {
-                if (!task.IsFaulted)
+                if(!task.IsFaulted)
                 {
                     InitializeSprockets();
                     WriteDebugInfo("Bot started. Initialized " + _sprockets.Count + " sprockets successfully.");
@@ -148,22 +154,30 @@ namespace Jabbot
         private void ProcessMessage(Message message, string room)
         {
             // Ignore replies from self
-            if (message.User.Name.Equals(Name, StringComparison.OrdinalIgnoreCase))
+            if(message.User.Name.Equals(Name, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            if (message.Content.Equals("enabledebug"))
+            // Ignore messages that don't address the bot
+            ////if(message.Content.IndexOf(this.Name, StringComparison.OrdinalIgnoreCase) < 0)
+            ////{
+            ////	return;
+            ////}
+
+            if((message.Content.StartsWith(this.Name, StringComparison.OrdinalIgnoreCase)) && (message.Content.IndexOf("enabledebug", StringComparison.OrdinalIgnoreCase) > 0))
             {
                 _debugMode = true;
             }
-            if (message.Content.Equals("disabledebug"))
+
+            if((message.Content.StartsWith(this.Name, StringComparison.OrdinalIgnoreCase)) && (message.Content.IndexOf("disabledebug", StringComparison.OrdinalIgnoreCase) > 0))
             {
                 _debugMode = false;
             }
+
             WriteDebugInfo(string.Format("{0} {1} {2}", room, message.Content, message.User.Name));
 
-            if (message.User.Name != Name)
+            if(message.User.Name != Name)
             {
                 WriteDebugInfo("Received " + message.Content + " from " + message.User.Name + " in " + room);
             }
@@ -175,7 +189,7 @@ namespace Jabbot
 
                 WriteDebugInfo("Content: " + content + " from " + name);
 
-                if (MessageReceived != null)
+                if(MessageReceived != null)
                 {
                     MessageReceived(message, room);
                 }
@@ -188,7 +202,7 @@ namespace Jabbot
                 handled = HandleMessageWithSprockets(chatMessage, handled);
 
                 WriteDebugInfo("Handling complete: " + handled);
-                if (!handled)
+                if(!handled)
                 {
                     WriteDebugInfo("Unhandled Message Handling");
                     ProcessUnhandledMessage(chatMessage);
@@ -198,7 +212,7 @@ namespace Jabbot
             .ContinueWith(task =>
             {
                 // Just write to debug output if it failed
-                if (task.IsFaulted)
+                if(task.IsFaulted)
                 {
                     Debug.WriteLine("JABBOT: Failed to process messages. {0}", task.Exception.GetBaseException());
                     Send("JABBOT: Failed to process messages:" + task.Exception.GetBaseException().ToString(), room);
@@ -210,18 +224,18 @@ namespace Jabbot
         private void ProcessUnhandledMessage(ChatMessage chatMessage)
         {
             // Loop over the unhandled message sprockets
-            foreach (var handler in _unhandledMessageSprockets)
+            foreach(var handler in _unhandledMessageSprockets)
             {
                 try
                 {
 
                     // Stop at the first one that handled the message
-                    if (handler.Handle(chatMessage, this))
+                    if(handler.Handle(chatMessage, this))
                     {
                         break;
                     }
                 }
-                catch (Exception e)
+                catch(Exception e)
                 {
                     WriteDebugInfo(e.GetBaseException().ToString());
                 }
@@ -231,20 +245,20 @@ namespace Jabbot
         private bool HandleMessageWithSprockets(ChatMessage chatMessage, bool handled)
         {
             // Loop over the registered sprockets
-            foreach (var handler in _sprockets)
+            foreach(var handler in _sprockets)
             {
                 try
                 {
                     // Stop at the first one that handled the message
                     WriteDebugInfo("Sending to " + handler.GetType().Name);
-                    if (handler.Handle(chatMessage, this))
+                    if(handler.Handle(chatMessage, this))
                     {
                         WriteDebugInfo("Handled by " + handler.GetType().Name);
                         handled = true;
                         break;
                     }
                 }
-                catch (Exception e)
+                catch(Exception e)
                 {
                     WriteDebugInfo(e.GetBaseException().ToString());
                 }
@@ -254,12 +268,12 @@ namespace Jabbot
 
         private CompositionContainer CreateCompositionContainer()
         {
-            if (_container == null)
+            if(_container == null)
             {
                 string extensionsPath = GetExtensionsPath();
 
                 // If the extensions folder exists then use them
-                if (Directory.Exists(extensionsPath))
+                if(Directory.Exists(extensionsPath))
                 {
                     _catalog = new AggregateCatalog(
                                 new AssemblyCatalog(typeof(Bot).Assembly),
@@ -277,28 +291,28 @@ namespace Jabbot
 
         private void InitializeContainer()
         {
-            if (!_containerInitialized)
+            if(!_containerInitialized)
             {
                 try
                 {
                     var container = CreateCompositionContainer();
                     // Add all the sprockets to the sprocket list
-                    foreach (var sprocket in container.GetExportedValues<ISprocket>())
+                    foreach(var sprocket in container.GetExportedValues<ISprocket>())
                     {
                         AddSprocket(sprocket);
                     }
                     // Add all the sprockets to the sprocket list
-                    foreach (var sprocket in container.GetExportedValues<IUnhandledMessageSprocket>())
+                    foreach(var sprocket in container.GetExportedValues<IUnhandledMessageSprocket>())
                     {
                         AddUnhandledMessageSprocket(sprocket);
                     }
                     _containerInitialized = true;
                 }
-                catch (ReflectionTypeLoadException ex)
+                catch(ReflectionTypeLoadException ex)
                 {
                     throw ex.LoaderExceptions.First();
                 }
-                catch (Exception e)
+                catch(Exception e)
                 {
                     throw e.GetBaseException();
                 }
@@ -318,13 +332,13 @@ namespace Jabbot
         {
             var container = CreateCompositionContainer();
             // Run all sprocket initializers
-            foreach (var sprocketInitializer in container.GetExportedValues<ISprocketInitializer>())
+            foreach(var sprocketInitializer in container.GetExportedValues<ISprocketInitializer>())
             {
                 try
                 {
                     sprocketInitializer.Initialize(this);
                 }
-                catch (Exception ex)
+                catch(Exception ex)
                 {
                     Trace.WriteLine(String.Format("Unable to Initialize {0}:{1}", sprocketInitializer.GetType().Name, ex.GetBaseException().Message));
                     WriteDebugInfo(String.Format("Unable to Initialize {0}:{1}", sprocketInitializer.GetType().Name, ex.GetBaseException().Message));
@@ -375,16 +389,16 @@ namespace Jabbot
         public void WriteDebugInfo(string message)
         {
             new LogEvent(message).Raise();
-            if (_debugMode)
+            if(_debugMode)
             {
-                this.Send(message, "BotDebug");
+                this.Send(message, "MimeoHubotDebug");
             }
         }
 
         private static string GetExtensionsPath()
         {
             string rootPath = null;
-            if (HostingEnvironment.IsHosted)
+            if(HostingEnvironment.IsHosted)
             {
 
                 rootPath = HostingEnvironment.ApplicationPhysicalPath;

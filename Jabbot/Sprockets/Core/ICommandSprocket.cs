@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Jabbot.Models;
 using Jabbot.Sprockets.Core;
 
@@ -9,8 +10,9 @@ namespace Jabbot.CommandSprockets
         string[] Arguments { get; }
         Jabbot.Core.IBot Bot { get; }
         string Command { get; }
-        bool ExecuteCommand();
+        Task<bool> ExecuteCommand();
         bool HasArguments { get; }
+        string Help { get; }
         string Intitiator { get; }
         bool MayHandle(string initiator, string command);
         ChatMessage Message { get; }

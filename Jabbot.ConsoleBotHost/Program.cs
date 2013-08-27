@@ -10,50 +10,43 @@ namespace Jabbot.ConsoleBotHost
         private static readonly string _botName = ConfigurationManager.AppSettings["Bot.Name"];
         private static readonly string _botPassword = ConfigurationManager.AppSettings["Bot.Password"];
         private static readonly string _botRooms = ConfigurationManager.AppSettings["Bot.RoomList"];
-        private static bool _appShouldExit = false;
+
         static void Main(string[] args)
         {
+            Bot bot = null;
+
             Console.WriteLine("Jabbot Bot Runner Starting...");
 
-            var bot = new Bot("http://jabbr.micheltol.nl/", "testbot", "testbot");
-            bot.StartUp();
-            JoinRooms(bot);
-
-            Console.ReadLine();
-            return;
-            while (!_appShouldExit)
-            {
-                RunBot();
-            }
-
-        }
-
-        private static void RunBot()
-        {
-            return;
             try
             {
                 Console.WriteLine(String.Format("Connecting to {0}...", _serverUrl));
-                Bot bot = new Bot(_serverUrl, _botName, _botPassword);
+                bot = new Bot(_serverUrl, _botName, _botPassword);
                 bot.StartUp();
                 JoinRooms(bot);
-                Console.Write("Press enter to quit...");
-                Console.ReadLine();
-                bot.ShutDown();
-                _appShouldExit = true;
             }
-            catch (Exception e)
+            catch(Exception e)
             {
                 Console.WriteLine("ERROR: " + e.GetBaseException().Message);
             }
 
+            // Wait for the user to quit the program.
+            Console.WriteLine("Press \'q\' to quit.");
+            while(Console.ReadLine() != "q")
+            {
+            }
+
+            if(bot != null)
+            {
+                bot.ShutDown();
+            }
         }
+
         private static void JoinRooms(Bot bot)
         {
-            foreach (var room in _botRooms.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(r => r.Trim()))
+            foreach(var room in _botRooms.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(r => r.Trim()))
             {
                 Console.Write("Joining {0}...", room);
-                if (TryCreateRoomIfNotExists(room, bot))
+                if(TryCreateRoomIfNotExists(room, bot))
                 {
                     bot.JoinRoom(room);
                     Console.WriteLine("OK");
@@ -70,9 +63,9 @@ namespace Jabbot.ConsoleBotHost
             {
                 bot.CreateRoom(roomName);
             }
-            catch (AggregateException e)
+            catch(AggregateException e)
             {
-                if (!e.GetBaseException().Message.Equals(string.Format("The room '{0}' already exists", roomName),
+                if(!e.GetBaseException().Message.Equals(string.Format("The room '{0}' already exists", roomName),
                         StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
